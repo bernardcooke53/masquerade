@@ -1,0 +1,53 @@
+---
+name: Build, Test and Deploy Misprint
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "pypy3.9"]
+      fail-fast: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          poetry install
+
+      - name: Format code with black and isort
+        run: |
+          poetry run black .
+          poetry run isort .
+
+      - name: Build package
+        run: |
+          poetry build
+
+      - name: Test package
+        run: |
+          poetry run pytest
+
+  publish-wheel:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Publish package
+        if: success() && needs.build.result == 'success'
+        uses: pypa/gh-action-pypi-publish@v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}

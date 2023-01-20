@@ -1,0 +1,113 @@
+---
+# Add args to hooks according to https://pre-commit.com/#passing-arguments-to-hooks
+repos:
+  # Poetry
+  - repo: local
+    hooks:
+      - id: system
+        language: system
+        name: poetry-check
+        entry: |
+          poetry check
+        always_run: true
+        pass_filenames: false
+
+      - id: system
+        language: system
+        name: poetry-lock
+        entry: |
+          poetry lock
+        always_run: true
+        pass_filenames: false
+
+  # Security & credential scanning/alerting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: debug-statements
+      - id: detect-aws-credentials
+        args: ["--allow-missing-credentials"]
+      - id: detect-private-key
+
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.2
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml", "--quiet", "app/"]
+        # Needed if using pyproject.toml for config
+        additional_dependencies: ["toml==0.10.2"]
+        pass_filenames: false
+
+  # Formatters that may modify source files automatically
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: check-case-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.31.0
+    hooks:
+      - id: pyupgrade
+        args: ["--py38-plus", "--keep-runtime-typing"]
+  - repo: https://github.com/psf/black
+    rev: 22.6.0
+    hooks:
+      - id: black
+  - repo: https://github.com/adamchainz/blacken-docs
+    rev: v1.12.1
+    hooks:
+      - id: blacken-docs
+        additional_dependencies: ["black==22.6.0"]
+
+  # Linters and validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: check-json
+      - id: check-yaml
+      - id: check-ast
+      - id: pretty-format-json
+        args: ["--autofix", "--indent=4", "--no-ensure-ascii", "--no-sort-keys"]
+
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.9.0
+    hooks:
+      - id: python-check-blanket-noqa
+      - id: python-no-eval
+      - id: python-no-log-warn
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 4.0.1
+    hooks:
+      - id: flake8
+        args: ["--output-file", "flake8-error-log.txt"]
+
+  - repo: local
+    hooks:
+      - id: system
+        language: system
+        types: [python]
+        files: ^src/.*\.py$
+        name: mypy
+        entry: |
+          poetry run mypy
+
+  - repo: local
+    hooks:
+      - id: system
+        language: system
+        types: [python]
+        always_run: true
+        pass_filenames: false
+        name: pytest
+        entry: |
+          poetry run pytest
