@@ -35,11 +35,11 @@ jobs:
           poetry run black .
           poetry run isort .
 
-      - name: Build wheel
-        run: |
-          poetry build
-
-      - name: Test wheel
+      - name: Test package
         run: |
           poetry install
           poetry run pytest
+
+      - name: Test build wheel
+        run: |
+          poetry build

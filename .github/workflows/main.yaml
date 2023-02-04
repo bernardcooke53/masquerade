@@ -35,10 +35,6 @@ jobs:
           poetry run black .
           poetry run isort .
 
-      - name: Build package
-        run: |
-          poetry build
-
       - name: Test package
         run: |
           poetry run pytest
@@ -48,6 +44,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Build package
+        run: |
+          poetry build
+
       - name: Publish package
         if: success() && needs.build.result == 'success'
         uses: pypa/gh-action-pypi-publish@release/v1
