@@ -26,7 +26,7 @@ within a string:
 
     assert misprinter.mask("this is my_secret_token") == "this is ****"
     assert (
-        misprinter.make("github tokens: ghp_abc123 ghp_def456")
+        misprinter.mask("github tokens: ghp_abc123 ghp_def456")
         == "github tokens: **** ****"
     )
 
