@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "misprint"
-version = "0.1.1"
+version = "0.2.0"
 description = "A logging filter that 'misprints' your secrets"
 authors = ["Bernard Cooke <bernard-cooke@hotmail.com>"]
 readme = "README.rst"
@@ -24,7 +24,7 @@ classifiers = [
 Homepage = "http://github.com/bernardcooke53/misprint"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"
