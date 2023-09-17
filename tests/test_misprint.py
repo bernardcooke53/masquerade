@@ -32,6 +32,25 @@ def default_misprint_filter():
     yield MisprintFilter()
 
 
+@pytest.fixture
+def logging_output_stream():
+    return io.StringIO()
+
+
+@pytest.fixture
+def logger(logging_output_stream, default_misprint_filter):
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    root.addHandler(logging.StreamHandler(logging_output_stream))
+    log = logging.getLogger(__name__)
+    log.setLevel(logging.DEBUG)
+
+    for h in root.handlers:
+        h.addFilter(default_misprint_filter)
+
+    return log
+
+
 @pytest.mark.parametrize("unwanted", [repr(""), repr(None), "", str(None)])
 def test_unwanted_masks_not_applied(default_misprinter, unwanted):
     default_misprinter.add_mask_for(unwanted, "foo")
@@ -189,25 +208,31 @@ def test_log_record_is_masked_with_nontrivial_args(
         logging.CRITICAL,
     ),
 )
-def test_log_messages_are_masked(default_misprint_filter, log_level, tmp_path):
-
-    buffer = io.StringIO()
-
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
-    root.addHandler(logging.StreamHandler(buffer))
-    log = logging.getLogger(__name__)
-    log.setLevel(logging.DEBUG)
-
-    for h in root.handlers:
-        h.addFilter(default_misprint_filter)
-
+def test_log_messages_are_masked(
+    default_misprint_filter, log_level, logging_output_stream, logger, tmp_path
+):
     for secret in _secrets:
         default_misprint_filter.add_mask_for(secret)
 
-    log.log(log_level, ", ".join("%s" for _ in _secrets), *_secrets)
-    for h in (*root.handlers, *log.handlers):
+    root = logging.getLogger()
+    logger.log(log_level, ", ".join("%s" for _ in _secrets), *_secrets)
+    for h in (*root.handlers, *logger.handlers):
         h.flush()
 
-    written = buffer.getvalue()
+    written = logging_output_stream.getvalue()
     assert all(secret not in written for secret in _secrets)
+
+
+@pytest.mark.parametrize("obj", (object(), (), {}, AttributeError("whoopsie")))
+def test_non_strings_are_returned(default_misprint_filter, obj):
+    rec = LogRecord(
+        name=__name__,
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=10,
+        args=(),
+        msg=obj,
+        exc_info=None,
+    )
+
+    assert default_misprint_filter.mask(rec.getMessage()) == str(obj)
