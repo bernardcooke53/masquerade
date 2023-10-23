@@ -1,113 +1,108 @@
 ---
-# Add args to hooks according to https://pre-commit.com/#passing-arguments-to-hooks
-repos:
-  # Poetry
-  - repo: local
-    hooks:
-      - id: system
-        language: system
-        name: poetry-check
-        entry: |
-          poetry check
-        always_run: true
-        pass_filenames: false
+default_language_version:
+  python: python3
 
-      - id: system
-        language: system
-        name: poetry-lock
-        entry: |
-          poetry lock
-        always_run: true
-        pass_filenames: false
+repos:
+  # Meta hooks
+  - repo: meta
+    hooks:
+      - id: check-hooks-apply
+      - id: check-useless-excludes
 
   # Security & credential scanning/alerting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.5.0
     hooks:
       - id: debug-statements
       - id: detect-aws-credentials
         args: ["--allow-missing-credentials"]
       - id: detect-private-key
-
-  - repo: https://github.com/pycqa/bandit
-    rev: 1.7.2
-    hooks:
-      - id: bandit
-        args: ["-c", "pyproject.toml", "--quiet", "app/"]
-        # Needed if using pyproject.toml for config
-        additional_dependencies: ["toml==0.10.2"]
-        pass_filenames: false
-
-  # Formatters that may modify source files automatically
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
-    hooks:
+      - id: check-builtin-literals
+      - id: check-shebang-scripts-are-executable
+      - id: check-yaml
+      - id: check-toml
       - id: check-case-conflict
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-merge-conflict
       - id: mixed-line-ending
+      - id: check-ast
 
-  - repo: https://github.com/pycqa/isort
-    rev: 5.10.1
-    hooks:
-      - id: isort
-        args: ["--profile", "black"]
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.0
-    hooks:
-      - id: pyupgrade
-        args: ["--py38-plus", "--keep-runtime-typing"]
+  # Formatters that may modify source files automatically
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 23.10.0
     hooks:
       - id: black
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: v1.12.1
+    rev: 1.16.0
     hooks:
       - id: blacken-docs
-        additional_dependencies: ["black==22.6.0"]
+        additional_dependencies: ["black==23.10.0"]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        args: ["--py38-plus", "--keep-runtime-typing"]
 
   # Linters and validation
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.1
     hooks:
-      - id: check-json
-      - id: check-yaml
-      - id: check-ast
-      - id: pretty-format-json
-        args: ["--autofix", "--indent=4", "--no-ensure-ascii", "--no-sort-keys"]
+      - id: ruff
+        args:
+          - "--fix"
+          - "--exit-non-zero-on-fix"
+          - "--statistics"
+          - "--output-format=text"
+          - "."
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: "v1.6.1"
+    hooks:
+      - id: mypy
+        args: ["--config-file", "pyproject.toml", "src/"]
+        log_file: "mypy.log"
+        files: "^src/misprint/.*"
+        pass_filenames: false
 
   - repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: python-check-blanket-noqa
+      - id: python-check-blanket-type-ignore
+      - id: python-check-mock-methods
       - id: python-no-eval
       - id: python-no-log-warn
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 4.0.1
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: "v2.10"
     hooks:
-      - id: flake8
-        args: ["--output-file", "flake8-error-log.txt"]
+      - id: vulture
+        args:
+          - --min-confidence
+          - "100"
+          - --sort-by-size
+          - "src/misprint"
+          - "tests"
 
-  - repo: local
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
     hooks:
-      - id: system
-        language: system
-        types: [python]
-        files: ^src/.*\.py$
-        name: mypy
-        entry: |
-          poetry run mypy
-
-  - repo: local
-    hooks:
-      - id: system
-        language: system
-        types: [python]
-        always_run: true
+      - id: bandit
+        args:
+          - "-c"
+          - "pyproject.toml"
+          - "--quiet"
+          - "src/misprint/"
+        # Needed if using pyproject.toml for config
+        additional_dependencies: ["bandit[toml]"]
         pass_filenames: false
-        name: pytest
-        entry: |
-          poetry run pytest
+  # GHA linting
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: "0.27.0"
+    hooks:
+      - id: check-github-workflows
+      # - id: check-readthedocs
+      - id: check-dependabot

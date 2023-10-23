@@ -1,5 +1,5 @@
 ---
-name: Build and test Misprint
+name: Build and test misprint
 
 on:
   workflow_call: {}
@@ -7,11 +7,17 @@ on:
     branches:
       - main
 
+concurrency:
+  group: main-${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    name: Python ${{ matrix.python-version }} on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version:
           - "3.8"
           - "3.9"
@@ -20,7 +26,6 @@ jobs:
           - "3.12"
           - "pypy3.9"
           - "pypy3.10"
-
       fail-fast: true
 
     steps:
@@ -32,23 +37,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-
       - name: Install dependencies and project
         run: |
-          poetry install --no-interaction
+          python -m pip install hatch
 
-      - name: Format code with black and isort
+      - name: Lint
         run: |
-          poetry run black .
-          poetry run isort .
+          hatch -e lint run all
 
-      - name: Test package
+      - name: Test
         run: |
-          poetry install
-          poetry run pytest
+          hatch run all
 
       - name: Test build wheel
         run: |
-          poetry build
+          hatch build

@@ -3,18 +3,52 @@ from __future__ import annotations
 import logging
 import re
 from collections import defaultdict
-from typing import Iterable
+from typing import ClassVar, Iterable
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 log = logging.getLogger(__name__)
 
 
-# https://relaxdiego.com/2014/07/logging-in-python.html
-# Updated/adapted for Python3
 class Misprinter:
-    REPLACE_STR = "*" * 4
-    _UNWANTED = [s for obj in ("", None) for s in (repr(obj), str(obj))]
+    r"""
+    You can use the `Misprinter` class to redact exact string matches or
+    regular expressions within a string:
+
+    >>> misprinter = Misprinter(
+    ...     token=["my_secret_token", re.compile(r"^ghp_\w+")]
+    ... )
+    >>> assert misprinter.mask("this is my_secret_token") == "this is ****"
+    >>> assert (
+    ...     misprinter.mask("github tokens: ghp_abc123 ghp_def456")
+    ...     == "github tokens: **** ****"
+    ... )
+
+    If you need to add a mask for new data to an existing instance then you
+    can use the `add_mask_for` method:
+
+    >>> misprinter = Misprinter()
+    >>> assert misprinter.mask("a secret1234") == "a secret1234"
+
+    >>> misprinter.add_mask_for("secret1234")
+    >>> assert misprinter.mask("a secret1234") == "a ****"
+
+    You can also initialise your `Misprinter` instance with
+    `use_named_masks=True` if you would like to be able to identify what data
+    has been masked more easily:
+
+    >>> misprinter = Misprinter(use_named_masks=True)
+    >>> misprinter.add_mask_for("another_secret", name="database password")
+
+    >>> assert (
+    ...     misprinter.mask("printing another_secret")
+    ...     == "printing <'database password' (value removed)>"
+    ... )
+    """
+    REPLACE_STR: ClassVar[str] = "*" * 4
+    _UNWANTED: ClassVar[Iterable[str | re.Pattern[str]]] = frozenset(
+        s for obj in ("", None) for s in (repr(obj), str(obj))
+    )
 
     def __init__(
         self,
@@ -56,7 +90,8 @@ class Misprinter:
 
 class MisprintFilter(Misprinter, logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        # Note if we blindly mask all types, we will actually cast arguments to
+        # NOTE:
+        # if we blindly mask all types, we will actually cast arguments to
         # log functions from external libraries to strings before they are
         # formatted into the message - for example, a dependency calling
         # log.debug("%d", 15) will raise a TypeError as this filter would

@@ -209,7 +209,7 @@ def test_log_record_is_masked_with_nontrivial_args(
     ),
 )
 def test_log_messages_are_masked(
-    default_misprint_filter, log_level, logging_output_stream, logger, tmp_path
+    default_misprint_filter, log_level, logging_output_stream, logger
 ):
     for secret in _secrets:
         default_misprint_filter.add_mask_for(secret)

@@ -6,10 +6,14 @@ on:
     branches:
       - main
 
+concurrency:
+  group: test-${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
     name: Python ${{ matrix.python-version }} on ${{ startsWith(matrix.os, 'macos-') && 'macOS' || startsWith(matrix.os, 'windows-') && 'Windows' || 'Linux' }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
       matrix:
@@ -21,7 +25,6 @@ jobs:
           - "3.11"
           - "3.12"
           - "pypy3.9"
-          - "pypy3.10"
 
     steps:
       - name: Checkout code
@@ -32,23 +35,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-
       - name: Install dependencies and project
         run: |
-          poetry install --no-interaction
+          python -m pip install hatch
 
-      - name: Format code with black and isort
+      - name: Lint
         run: |
-          poetry run black .
-          poetry run isort .
+          hatch -e lint run all
 
-      - name: Test package
+      - name: Test
         run: |
-          poetry install
-          poetry run pytest
+          hatch run all
 
       - name: Test build wheel
         run: |
-          poetry build
+          hatch build

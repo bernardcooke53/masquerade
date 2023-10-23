@@ -1,39 +1,67 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
 name = "misprint"
-version = "0.2.0"
+dynamic = ["version"]
 description = "A logging filter that 'misprints' your secrets"
-authors = ["Bernard Cooke <bernard-cooke@hotmail.com>"]
-readme = "README.rst"
-packages = [{ include = "misprint", from = "src" }]
+readme = "README.md"
+requires-python = ">=3.8"
 license = "MIT"
+keywords = []
+authors = [{ name = "Bernard Cooke", email = "bernard-cooke@hotmail.com" }]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
-  "Operating System :: OS Independent",
+  "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = []
+
+[project.urls]
+Documentation = "https://github.com/unknown/misprint#readme"
+Issues = "https://github.com/unknown/misprint/issues"
+Source = "https://github.com/unknown/misprint"
+
+[tool.hatch.version]
+path = "src/misprint/__init__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "pre-commit",
+  "coverage[toml]>=6.5",
+  "pytest",
+  "pytest-cov",
+  "pytest-clarity",
+  "pytest-pretty",
 ]
 
-[tool.poetry.urls]
-"Project Url" = "http://github.com/bernardcooke53/misprint"
-"Bug Tracker" = "https://github.com/bernardcooke53/misprint"
-Homepage = "http://github.com/bernardcooke53/misprint"
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+cov-report = ["- coverage combine", "coverage report"]
+cov = ["test", "cov-report"]
+pre-commit-all = "pre-commit run -a"
+all = ["cov", "pre-commit-all"]
 
-[tool.poetry.dependencies]
-python = "^3.8"
+[[tool.hatch.envs.all.matrix]]
+python = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
 
-[tool.poetry.group.dev.dependencies]
-black = "^22.12.0"
-isort = "^5.11.4"
-mypy = "^0.991"
-pytest = "^7.2.1"
-pytest-cov = "^4.0.0"
-coverage = { extras = ["toml"], version = "^7.0.5" }
-bandit = "^1.7.4"
+[tool.hatch.envs.lint]
+detached = true
+dependencies = ["black>=23.10.0", "mypy>=1.6.1", "ruff>=0.1.1"]
+
+[tool.hatch.envs.lint.scripts]
+typing = "mypy --install-types --non-interactive {args:src/misprint tests}"
+style = ["ruff {args:.}", "black --check --diff {args:.}"]
+fmt = ["black {args:.}", "ruff --fix {args:.}", "style"]
+all = ["style", "typing"]
 
 [tool.pytest.ini_options]
 addopts = [
@@ -50,33 +78,73 @@ python_files = ["tests/test_*.py", "tests/**/test_*.py"]
 [tool.bandit]
 targets = ["src"]
 
-[tool.coverage.run]
-omit = ["*/tests/*"]
+[tool.black]
+target-version = ["py38"]
+line-length = 88
+skip-string-normalization = true
 
-[tool.isort]
-profile = "black"
-skip = [".tox", "venv"]
-combine_as_imports = true
-group_by_package = true
-default_section = "THIRDPARTY"
-known_first_party = ["misprint"]
-known_tests = ["tests"]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-line_length = 88
-sections = [
-  "FUTURE",
-  "STDLIB",
-  "THIRDPARTY",
-  "FIRSTPARTY",
-  "TESTS",
-  "LOCALFOLDER",
+[tool.ruff]
+target-version = "py38"
+line-length = 88
+select = [
+  "A",
+  "ARG",
+  "B",
+  "C",
+  "DTZ",
+  "E",
+  "EM",
+  "F",
+  "FBT",
+  "I",
+  "ICN",
+  "ISC",
+  "N",
+  "PLC",
+  "PLE",
+  "PLR",
+  "PLW",
+  "Q",
+  "RUF",
+  "S",
+  "T",
+  "TID",
+  "UP",
+  "W",
+  "YTT",
+]
+ignore = [
+  # Allow non-abstract empty methods in abstract base classes
+  "B027",
+  # Allow boolean positional values in function calls, like `dict.get(... True)`
+  "FBT003",
+  # Pseudo-random generators aren't suitable for cryptographic purposes (true,
+  # but we aren't using them for that)
+  "S311",
+  # Ignore complexity
+  "C901",
+  "PLR0911",
+  "PLR0912",
+  "PLR0913",
+  "PLR0915",
+]
+unfixable = [
+  # Don't touch unused imports
+  "F401",
 ]
 
+[tool.ruff.isort]
+known-first-party = ["misprint"]
+
+[tool.ruff.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.per-file-ignores]
+# Tests can use magic values, assertions, and unused variables (e.g. as fixtures)
+"tests/**/*" = ["PLR2004", "S101", "ARG001"]
+
 [tool.mypy]
-python_version = 3.7
+python_version = 3.8
 
 mypy_path = "src"
 
@@ -108,3 +176,16 @@ module = "tests.*"
 allow_untyped_defs = true
 allow_incomplete_defs = true
 allow_untyped_calls = true
+
+[tool.coverage.run]
+source_pkgs = ["misprint", "tests"]
+branch = true
+parallel = true
+omit = ["src/misprint/__about__.py"]
+
+[tool.coverage.paths]
+misprint = ["src/misprint", "*/misprint/src/misprint"]
+tests = ["tests", "*/misprint/tests"]
+
+[tool.coverage.report]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
